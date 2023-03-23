@@ -7,9 +7,12 @@ import {
 } from 'react-icons/ai';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { BsMenuButton } from 'react-icons/bs';
+import { useRecoilState } from 'recoil';
+import { modalState } from '../atom/modalAtom';
 
 export default function Header() {
   const { data: session } = useSession();
+  const [open, setOpen] = useRecoilState(modalState);
 
   return (
     <header className='sticky top-0 shadow-sm bg-white z-30'>
@@ -48,7 +51,10 @@ export default function Header() {
           <AiFillHome className='hidden md:inline-flex text-2xl cursor-pointer hover:scale-125 transition-transform duration-200 ease-out' />
           {session ? (
             <>
-              <AiOutlinePlusCircle className='text-2xl cursor-pointer hover:scale-125 transition-transform duration-200 ease-out' />
+              <AiOutlinePlusCircle
+                onClick={() => setOpen(true)}
+                className='text-2xl cursor-pointer hover:scale-125 transition-transform duration-200 ease-out'
+              />
               <img
                 onClick={signOut}
                 src={session.user.image}
