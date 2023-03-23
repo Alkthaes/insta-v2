@@ -5,8 +5,12 @@ import {
   AiFillHome,
   AiOutlinePlusCircle,
 } from 'react-icons/ai';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import { BsMenuButton } from 'react-icons/bs';
 
 export default function Header() {
+  const { data: session } = useSession();
+
   return (
     <header className='sticky top-0 shadow-sm bg-white z-30'>
       <div className='flex items-center justify-between max-w-6xl mx-4 xl:mx-auto'>
@@ -42,12 +46,19 @@ export default function Header() {
 
         <div className='flex space-x-4 items-center'>
           <AiFillHome className='hidden md:inline-flex text-2xl cursor-pointer hover:scale-125 transition-transform duration-200 ease-out' />
-          <AiOutlinePlusCircle className='text-2xl cursor-pointer hover:scale-125 transition-transform duration-200 ease-out' />
-          <img
-            src='https://cdn-cf.ginx.tv/respawn-cdn/mV6-7qivPHPLOY0xShEBDbIowWshVOf9ig2f_JyLa60/fill/1280/0/no/1/aHR0cHM6Ly93d3cuZ2lueC50di91cGxvYWRzL3Bhc3RlZF9pbWFnZV8wLTEyNS5wbmc.webp'
-            alt='Your avatar picture'
-            className='h-10 w-10 object-cover rounded-full cursor-pointer hover:scale-125 transition-transform duration-200 ease-out'
-          />
+          {session ? (
+            <>
+              <AiOutlinePlusCircle className='text-2xl cursor-pointer hover:scale-125 transition-transform duration-200 ease-out' />
+              <img
+                onClick={signOut}
+                src={session.user.image}
+                alt='Your avatar picture'
+                className='h-10 w-10 object-cover rounded-full cursor-pointer hover:scale-125 transition-transform duration-200 ease-out'
+              />
+            </>
+          ) : (
+            <button onClick={signIn}>Sign In</button>
+          )}
         </div>
       </div>
     </header>
