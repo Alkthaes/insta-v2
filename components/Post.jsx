@@ -8,10 +8,13 @@ import { useSession } from 'next-auth/react';
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from '@/firebase';
 
@@ -19,6 +22,8 @@ export default function Post({ img, userImg, caption, username, id }) {
   const { data: session } = useSession();
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState([]);
+  const [likes, setLikes] = useState([]);
+  const [hasLiked, setHasLiked] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -31,7 +36,30 @@ export default function Post({ img, userImg, caption, username, id }) {
       }
     );
   }, [db, id]);
-  console.log(comments);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, 'posts', id, 'likes'),
+      (snapshot) => {
+        setLikes(snapshot.docs);
+      }
+    );
+  }, [db]);
+
+  useEffect(() => {
+    setHasLiked(likes.findIndex((like) => like.id === session.user.uid) !== -1);
+  }, [likes]);
+
+  async function likePost() {
+    if (hasLiked) {
+      await deleteDoc(doc(db, 'posts', id, 'likes', session.user.uid));
+      return;
+    } else {
+      await setDoc(doc(db, 'posts', id, 'likes', session.user.uid), {
+        username: session.user.username,
+      });
+    }
+  }
 
   async function sendComment(e) {
     e.preventDefault();
@@ -66,7 +94,15 @@ export default function Post({ img, userImg, caption, username, id }) {
       {session && (
         <div className='flex justify-between px-4 pt-4'>
           <div className='flex space-x-4'>
-            <AiOutlineHeart className='postBtn' />
+            {hasLiked ? (
+              <AiFillHeart
+                onClick={likePost}
+                className='postBtn text-red-600'
+              />
+            ) : (
+              <AiOutlineHeart onClick={likePost} className='postBtn' />
+            )}
+
             <div className='flex space-x-2'>
               <FaRegCommentDots className='postBtn' />
               {comments.length > 0 && (
@@ -84,6 +120,12 @@ export default function Post({ img, userImg, caption, username, id }) {
       {/* Post Comments */}
 
       <p className='p-5 truncate'>
+        {likes.length > 0 && (
+          <p className='font-bold mb-1'>{likes.length} like</p>
+        )}
+        {likes.length > 1 && (
+          <p className='font-bold mb-1'>{likes.length} likes</p>
+        )}
         <span className='font-bold mr-2'>{username}</span>
         {caption}
       </p>
