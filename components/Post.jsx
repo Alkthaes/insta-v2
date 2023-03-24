@@ -1,15 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import Moment from 'react-moment';
 import { BsThreeDots, BsBookmark } from 'react-icons/bs';
 import { AiOutlineHeart, AiFillHeart } from 'react-icons/ai';
 import { FaRegCommentDots } from 'react-icons/fa';
 import { GrEmoji } from 'react-icons/gr';
 import { useSession } from 'next-auth/react';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+} from 'firebase/firestore';
 import { db } from '@/firebase';
 
 export default function Post({ img, userImg, caption, username, id }) {
   const { data: session } = useSession();
   const [comment, setComment] = useState('');
+  const [comments, setComments] = useState([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      query(
+        collection(db, 'posts', id, 'comments'),
+        orderBy('timestamp', 'desc')
+      ),
+      (snapshot) => {
+        setComments(snapshot.docs);
+      }
+    );
+  }, [db, id]);
+  console.log(comments);
 
   async function sendComment(e) {
     e.preventDefault();
@@ -19,7 +41,7 @@ export default function Post({ img, userImg, caption, username, id }) {
       comment: commentToSend,
       username: session.user.username,
       userImage: session.user.image,
-      timestapm: serverTimestamp(),
+      timestamp: serverTimestamp(),
     });
 
     setComment('');
@@ -45,7 +67,15 @@ export default function Post({ img, userImg, caption, username, id }) {
         <div className='flex justify-between px-4 pt-4'>
           <div className='flex space-x-4'>
             <AiOutlineHeart className='postBtn' />
-            <FaRegCommentDots className='postBtn' />
+            <div className='flex space-x-2'>
+              <FaRegCommentDots className='postBtn' />
+              {comments.length > 0 && (
+                <p className='text-sm font-bold'>{comments.length} comment</p>
+              )}
+              {comments.length > 1 && (
+                <p className='text-sm font-bold'>{comments.length} comments</p>
+              )}
+            </div>
           </div>
           <BsBookmark className='postBtn' />
         </div>
@@ -57,6 +87,25 @@ export default function Post({ img, userImg, caption, username, id }) {
         <span className='font-bold mr-2'>{username}</span>
         {caption}
       </p>
+      {comments.length > 0 && (
+        <div className='mx-10 max-h-24 overflow-y-scroll scrollbar-none'>
+          {comments.map((comment) => (
+            <div
+              key={comment.data().id}
+              className='flex items-center space-x-2 mb-2'
+            >
+              <img
+                className='h-7  rounded-full object-cover'
+                src={comment.data().userImage}
+                alt='user-image'
+              />
+              <p className='font-semibold'>{comment.data().username}</p>
+              <p className='flex-1 truncate'>{comment.data().comment}</p>
+              <Moment fromNow>{comment.data().timestamp?.toDate()}</Moment>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Post Input Box */}
       {session && (
